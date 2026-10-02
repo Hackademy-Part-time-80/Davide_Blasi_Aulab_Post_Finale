@@ -12,8 +12,29 @@ use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
+
+// Aggiungi 'role_id' all'array $fillable esistente
+
 class User extends Authenticatable
 {
+
+    // Aggiungo 'role_id' all'array già esistente
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function articles()
+    {
+        return $this->hasMany(Article::class);
+    }
+
+    public function teamRequests()
+    {
+        return $this->hasMany(TeamRequest::class);
+    }
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
