@@ -11,9 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->unsignedBigInteger('role_id')->nullable()->after('id');
-            $table->foreign('role_id')->references('id')->on('roles')->onDelete('set null');
+        Schema::create('team_requests', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('requested_role_id')->nullable()
+                ->constrained('roles')->onDelete('set null');
+            $table->text('message')->nullable();
+            $table->enum('status', ['in_attesa', 'accettata', 'rifiutata'])
+                ->default('in_attesa');
+            $table->timestamps();
         });
     }
 
