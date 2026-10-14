@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 
-class CategoryController extends CRUDcontroller
+class CategoryController extends CRUDController
 {
     protected string $model = Category::class;
+    protected string $label = 'Categorie';
 }

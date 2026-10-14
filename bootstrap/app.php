@@ -15,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->alias(['admin' => \App\Http\Middleware\IsAdmin::class]);
+        $middleware->alias(['role' => \App\Http\Middleware\EnsureRole::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

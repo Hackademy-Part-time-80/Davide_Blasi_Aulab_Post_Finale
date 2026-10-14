@@ -4,80 +4,170 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\Category;
+use App\Models\Tag;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 class ArticleController extends Controller
 {
-    private function rules(): array
-    {
-        return [
-            'title' => 'required|string|max:255',
-            'subtitle' => 'nullable|string|max:255',
-            'body' => 'required|string',
-            'cover_image' => 'nullable|image|max:2048',
-            'category_id' => 'required|exists:categories,id',
-        ];
-    }
-
     public function homepage()
     {
-        return view('pages.homepage', ['articles' => Article::where('status', 'pubblicato')->latest()->take(6)->get()]);
+        return view('pages.homepage', [
+            'articles' => Article::published()->with('user', 'category')->latest()->latest('id')->take(6)->get(),
+        ]);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        return view('pages.articles.index', ['articles' => Article::where('status', 'pubblicato')->latest()->paginate(12)]);
+        $categoryId = $request->integer('category');
+        $authorId = $request->integer('author');
+        $search = trim($request->string('q')->toString());
+
+        $query = Article::published()
+            ->with('user', 'category')
+            ->search($search);
+
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($authorId) {
+            $query->where('user_id', $authorId);
+        }
+
+        $articles = $query
+            ->latest()
+            ->latest('id')
+            ->paginate(9)
+            ->withQueryString();
+
+        return view('pages.articles.index', [
+            'articles' => $articles,
+            'category' => $categoryId ? Category::find($categoryId) : null,
+            'author' => $authorId ? User::find($authorId) : null,
+        ]);
     }
 
     public function show(Article $article)
     {
-        abort_unless($article->status === 'pubblicato' || $article->user_id === auth()->id(), 404);
-        return view('pages.articles.show', compact('article'));
+        abort_unless(Gate::allows('view', $article), 404);
+
+        return view('pages.articles.show', ['article' => $article->load('user', 'category', 'tags')]);
     }
 
     public function create()
     {
-        return view('pages.articles.create', ['categories' => Category::all()]);
+        Gate::authorize('create', Article::class);
+
+        return $this->form(new Article);
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate($this->rules());
-        if ($request->hasFile('cover_image')) {
-            $data['cover_image'] = $request->file('cover_image')->store('covers', 'public');
-        }
-        $data['user_id'] = auth()->id();
-        $data['status'] = 'in_revisione';
+        Gate::authorize('create', Article::class);
+        $this->persist($request, new Article(['user_id' => Auth::id()]));
 
-        Article::create($data);
-        return redirect()->route('articles.index')->with('success', 'Articolo inviato per la revisione!');
+        return redirect()->route('writer.dashboard')
+            ->with('success', 'Articolo inviato: sarà pubblicato dopo la revisione.');
     }
 
     public function edit(Article $article)
     {
-        abort_if($article->user_id !== auth()->id(), 403);
-        return view('pages.articles.edit', ['article' => $article, 'categories' => Category::all()]);
+        Gate::authorize('update', $article);
+
+        return $this->form($article->load('tags'));
     }
 
     public function update(Request $request, Article $article)
     {
-        abort_if($article->user_id !== auth()->id(), 403);
-        $data = $request->validate($this->rules());
-        if ($request->hasFile('cover_image')) {
-            $data['cover_image'] = $request->file('cover_image')->store('covers', 'public');
-        } else {
-            unset($data['cover_image']);
-        }
-        $data['status'] = 'in_revisione';
+        Gate::authorize('update', $article);
+        $this->persist($request, $article);
 
-        $article->update($data);
-        return redirect()->route('articles.show', $article)->with('success', 'Articolo aggiornato.');
+        return redirect()->route('writer.dashboard')
+            ->with('success', 'Articolo aggiornato: è tornato in revisione.');
     }
 
     public function destroy(Article $article)
     {
-        abort_if($article->user_id !== auth()->id(), 403);
+        Gate::authorize('delete', $article);
+
+        if ($article->cover_image) {
+            Storage::disk('public')->delete($article->cover_image);
+        }
         $article->delete();
-        return redirect()->route('articles.index')->with('success', 'Articolo eliminato.');
+
+        return redirect()->route('writer.dashboard')->with('success', 'Articolo eliminato.');
+    }
+
+    public function mine()
+    {
+        return view('pages.writer.dashboard', [
+            'articles' => Article::where('user_id', Auth::id())->with('category')->latest()->latest('id')->get(),
+        ]);
+    }
+
+    private function form(Article $article)
+    {
+        return view('pages.articles.form', [
+            'article' => $article,
+            'categories' => Category::orderBy('name')->get(),
+            'tags' => Tag::orderBy('name')->get(),
+        ]);
+    }
+
+    private function persist(Request $request, Article $article): void
+    {
+        $imageRule = $article->exists ? 'nullable' : 'required';
+
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'subtitle' => 'nullable|string|max:255',
+            'body' => 'required|string',
+            'cover_image' => $imageRule . '|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'category_id' => 'required|exists:categories,id',
+            'tags' => 'nullable|array',
+            'tags.*' => 'required|integer|distinct|exists:tags,id',
+        ]);
+
+        $tags = $data['tags'] ?? [];
+        unset($data['tags'], $data['cover_image']);
+
+        $disk = Storage::disk('public');
+        $oldCover = $article->cover_image;
+        $newCover = null;
+
+        if ($request->hasFile('cover_image')) {
+            $newCover = $request->file('cover_image')->store('covers', 'public');
+
+            if (! $newCover) {
+                throw new \RuntimeException('Impossibile salvare la copertina.');
+            }
+
+            $data['cover_image'] = $newCover;
+        }
+
+        $data['status'] = 'in_revisione';
+
+        try {
+            DB::transaction(function () use ($article, $data, $tags) {
+                $article->fill($data);
+                $article->save();
+                $article->tags()->sync($tags);
+            });
+        } catch (\Throwable $exception) {
+            if ($newCover) {
+                $disk->delete($newCover);
+            }
+
+            throw $exception;
+        }
+
+        if ($newCover && $oldCover && $oldCover !== $newCover) {
+            $disk->delete($oldCover);
+        }
     }
 }

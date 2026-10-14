@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Models\TeamRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
 
 class TeamRequestController extends Controller
 {
@@ -34,12 +36,51 @@ class TeamRequestController extends Controller
 
     public function resolve(TeamRequest $teamRequest, string $decision)
     {
-        $teamRequest->update(['status' => $decision === 'approve' ? 'accettata' : 'rifiutata']);
+        return DB::transaction(function () use ($teamRequest, $decision) {
+            $teamRequest = TeamRequest::lockForUpdate()
+                ->findOrFail($teamRequest->id);
 
-        if ($decision === 'approve') {
-            $teamRequest->user->update(['role_id' => $teamRequest->requested_role_id]);
-        }
+            if ($teamRequest->status !== 'in_attesa') {
+                return back()->with(
+                    'error',
+                    'Questa richiesta è già stata gestita.'
+                );
+            }
 
-        return back()->with('success', 'Richiesta aggiornata.');
+            if ($decision === 'approve') {
+                $user = $teamRequest->user;
+                $role = $teamRequest->requestedRole;
+
+                if (! $user || ! $role) {
+                    return back()->with(
+                        'error',
+                        'Utente o ruolo non più disponibile.'
+                    );
+                }
+
+                if ($user->hasRole('Admin')) {
+                    return back()->with(
+                        'error',
+                        'Il ruolo di un amministratore non può essere cambiato tramite una candidatura.'
+                    );
+                }
+
+                $user->role_id = $role->id;
+                $user->save();
+
+                $teamRequest->status = 'accettata';
+            } else {
+                $teamRequest->status = 'rifiutata';
+            }
+
+            $teamRequest->save();
+
+            return back()->with(
+                'success',
+                $decision === 'approve'
+                    ? 'Richiesta approvata e ruolo assegnato.'
+                    : 'Richiesta rifiutata.'
+            );
+        });
     }
 }

@@ -11,9 +11,9 @@ use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
-
 class User extends Authenticatable
 {
+    use HasFactory, Notifiable;
 
     public function role()
     {
@@ -30,8 +30,10 @@ class User extends Authenticatable
         return $this->hasMany(TeamRequest::class);
     }
 
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role?->name, $roles, true);
+    }
 
     /**
      * Get the attributes that should be cast.
