@@ -56,6 +56,21 @@ class BacklogPagesTest extends TestCase
         $this->get(route('tags.index'))->assertOk();
     }
 
+    public function test_login_rejects_password_as_array(): void
+    {
+        $user = User::factory()->create();
+
+        $this->from('/login')
+            ->post('/login', [
+                'email' => $user->email,
+                'password' => ['valore-non-valido'],
+            ])
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors('password');
+
+        $this->assertGuest();
+    }
+
     private function userWithRole(string $roleName): User
     {
         $user = new User;

@@ -1,7 +1,7 @@
-<x-layout>
-    <main class="home-page">
+<x-layout title="Archivio articoli — The Aulab Post">
+    <main id="main-content" class="home-page ui-page ui-archive-page" tabindex="-1">
         <div class="home-container home-archive">
-            <header class="home-archive-header">
+            <header class="home-archive-header ui-page-intro">
                 <div>
                     <p class="home-kicker">The Aulab Post</p>
                     <h1>Archivio articoli</h1>
@@ -28,15 +28,15 @@
             </header>
 
             @if ($category || $author)
-            <div class="home-archive-filters" aria-label="Filtri attivi">
+            <div class="home-archive-filters" role="group" aria-label="Filtri attivi">
                 <span>Filtri:</span>
                 @if ($category)
-                <a class="home-tag" href="{{ route('articles.index', array_filter(['q' => request('q'), 'author' => request('author')])) }}">
+                <a class="home-tag" href="{{ route('articles.index', array_filter(['q' => request('q'), 'author' => request('author')])) }}" aria-label="Rimuovi il filtro categoria: {{ $category->name }}">
                     Categoria: {{ $category->name }} <span aria-hidden="true">&times;</span>
                 </a>
                 @endif
                 @if ($author)
-                <a class="home-tag" href="{{ route('articles.index', array_filter(['q' => request('q'), 'category' => request('category')])) }}">
+                <a class="home-tag" href="{{ route('articles.index', array_filter(['q' => request('q'), 'category' => request('category')])) }}" aria-label="Rimuovi il filtro autore: {{ $author->name }}">
                     Autore: {{ $author->name }} <span aria-hidden="true">&times;</span>
                 </a>
                 @endif
@@ -64,7 +64,7 @@
                     <article class="home-archive-card">
                         <a class="home-archive-image" href="{{ route('articles.show', $article->id) }}" tabindex="-1" aria-hidden="true">
                             @if ($article->cover_image)
-                            <img src="{{ Storage::url($article->cover_image) }}" alt="">
+                            <img src="{{ Storage::url($article->cover_image) }}" alt="" loading="lazy" decoding="async">
                             @else
                             <span class="home-image-placeholder"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span>
                             @endif
@@ -93,9 +93,9 @@
             </div>
 
             @if ($articles->hasPages())
-            <nav class="home-archive-pagination" aria-label="Paginazione articoli">
+            <div class="home-archive-pagination">
                 {{ $articles->links('pagination::bootstrap-5') }}
-            </nav>
+            </div>
             @endif
         </div>
     </main>

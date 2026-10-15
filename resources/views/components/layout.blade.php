@@ -1,10 +1,12 @@
+@props(['title' => 'The Aulab Post', 'errorTargets' => []])
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-bs-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aulab-Post</title>
+    <title>{{ $title }}</title>
+    <meta name="color-scheme" content="dark">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{ $css ?? ''}}
 
@@ -27,8 +29,9 @@
 </head>
 
 <body class="bg-black text-white">
+    <a class="skip-link" href="#main-content">Vai al contenuto</a>
     <x-navbar />
-    <x-flash />
+    <x-flash :error-targets="$errorTargets" />
 
     {{ $slot}}
 

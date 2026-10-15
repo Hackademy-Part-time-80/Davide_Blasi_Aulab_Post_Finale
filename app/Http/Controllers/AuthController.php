@@ -8,8 +8,14 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function showRegister() { return view('pages.auth.register'); }
-    public function showLogin() { return view('pages.auth.login'); }
+    public function showRegister()
+    {
+        return view('pages.auth.register');
+    }
+    public function showLogin()
+    {
+        return view('pages.auth.login');
+    }
 
     public function register(Request $request)
     {
@@ -26,8 +32,11 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate(['email' => 'required|email', 'password' => 'required']);
-
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+        
         if (! Auth::attempt($credentials)) {
             return back()->withErrors(['email' => 'Email o password non corretti.'])->onlyInput('email');
         }

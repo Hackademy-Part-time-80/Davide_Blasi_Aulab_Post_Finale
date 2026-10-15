@@ -1,31 +1,31 @@
-<nav class="navbar navbar-expand-xl navbar-dark border-bottom border-secondary-subtle bg-black sticky-top">
+<nav class="navbar navbar-expand-xxl navbar-dark bg-black sticky-top" aria-label="Navigazione principale">
 
-    <div class="container-fluid px-4 px-xl-5">
+    <div class="home-container navbar-shell">
 
         <a href="{{ route('homepage') }}"
             class="navbar-brand d-flex align-items-center gap-2">
 
             {{ $slot }}
 
-            <i class="fa-solid fa-book-open text-warning fs-2"></i>
+            <i class="fa-solid fa-book-open" aria-hidden="true"></i>
 
-            <span class="font-serif fs-3 fw-bold">
+            <span class="navbar-wordmark">
 
                 The Aulab
-                <span class="text-warning">Post</span>
+                <span>Post</span>
 
             </span>
 
         </a>
 
-
         <button
             class="navbar-toggler"
             type="button"
             data-bs-toggle="collapse"
-            data-bs-target="#mainNavbar">
+            data-bs-target="#mainNavbar"
+            aria-controls="mainNavbar" aria-expanded="false" aria-label="Apri o chiudi il menu di navigazione">
 
-            <span class="navbar-toggler-icon"></span>
+            <span class="navbar-toggler-icon" aria-hidden="true"></span>
 
         </button>
 
@@ -35,12 +35,12 @@
             id="mainNavbar">
 
 
-            <ul class="navbar-nav mx-xl-5 gap-xl-3">
+            <ul class="navbar-nav editorial-nav mx-xxl-auto gap-xxl-1">
                 <li class="nav-item">
-                    <a href="{{ route('homepage') }}" class="nav-link {{ request()->routeIs('homepage') ? 'active text-warning' : '' }}">Home</a>
+                    <a href="{{ route('homepage') }}" class="nav-link {{ request()->routeIs('homepage') ? 'active' : '' }}" @if (request()->routeIs('homepage')) aria-current="page" @endif>Home</a>
                 </li>
                 <li class="nav-item">
-                    <a href="{{ route('articles.index') }}" class="nav-link {{ request()->routeIs('articles.*') ? 'active text-warning' : '' }}">Articoli</a>
+                    <a href="{{ route('articles.index') }}" class="nav-link {{ request()->routeIs('articles.*') ? 'active' : '' }}" @if (request()->routeIs('articles.*')) aria-current="page" @endif>Articoli</a>
                 </li>
                 <li class="nav-item">
                     <a href="{{ route('homepage') }}#home-categories-title"
@@ -49,46 +49,54 @@
                     </a>
                 </li>
 
+                @if (! auth()->user()?->hasRole('Writer', 'Admin'))
                 <li class="nav-item">
                     <a href="{{ route('team.create') }}"
-                        class="nav-link {{ request()->routeIs('team.*') ? 'active text-warning' : '' }}">
+                        class="nav-link {{ request()->routeIs('team.*') ? 'active' : '' }}"
+                        @if (request()->routeIs('team.*')) aria-current="page" @endif>
                         Lavora con noi
                     </a>
                 </li>
+                @endif
+
+                @if (! auth()->user()?->hasRole('Admin'))
                 <li class="nav-item">
                     <a href="{{ route('feedback.create') }}"
-                        class="nav-link {{ request()->routeIs('feedback.*') ? 'active text-warning' : '' }}">
+                        class="nav-link {{ request()->routeIs('feedback.create') ? 'active' : '' }}"
+                        @if (request()->routeIs('feedback.create')) aria-current="page" @endif>
                         Feedback
                     </a>
                 </li>
+                @endif
+
                 @auth
                 @php($navUser = auth()->user())
                 @if ($navUser->hasRole('Writer'))
-                <li class="nav-item"><a href="{{ route('writer.dashboard') }}" class="nav-link">I miei articoli</a></li>
+                <li class="nav-item"><a href="{{ route('writer.dashboard') }}" class="nav-link {{ request()->routeIs('writer.dashboard') ? 'active' : '' }}" @if (request()->routeIs('writer.dashboard')) aria-current="page" @endif>I miei articoli</a></li>
                 @endif
                 @if ($navUser->hasRole('Revisor', 'Admin'))
-                <li class="nav-item"><a href="{{ route('review.index') }}" class="nav-link">Revisione</a></li>
+                <li class="nav-item"><a href="{{ route('review.index') }}" class="nav-link {{ request()->routeIs('review.index') ? 'active' : '' }}" @if (request()->routeIs('review.index')) aria-current="page" @endif>Revisione</a></li>
                 @endif
                 @if ($navUser->hasRole('Admin'))
-                <li class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link">Amministrazione</a></li>
-                @endif
+                <li class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.*', 'categories.*', 'tags.*') ? 'active' : '' }}" @if (request()->routeIs('admin.*', 'categories.*', 'tags.*')) aria-current="page" @endif>Amministrazione</a></li>
                 <li class="nav-item">
                     <a href="{{ route('feedback.index') }}"
-                        class="nav-link {{ request()->routeIs('feedback.index') ? 'active text-warning' : '' }}">
+                        class="nav-link {{ request()->routeIs('feedback.index') ? 'active' : '' }}" @if (request()->routeIs('feedback.index')) aria-current="page" @endif>
                         Feedback ricevuti
                     </a>
                 </li>
+                @endif
                 @endauth
             </ul>
 
-            <div class="navbar-tools ms-auto">
+            <div class="navbar-tools ms-xxl-auto">
 
                 @auth
                 <div class="dropdown">
-                    <button class="navbar-account dropdown-toggle"
+                    <button class="navbar-account dropdown-toggle" id="accountMenu"
                         type="button"
                         data-bs-toggle="dropdown"
-                        aria-expanded="false">
+                        aria-expanded="false" aria-controls="accountMenuItems">
 
                         <span class="navbar-avatar">
                             <i class="fa-solid fa-user" aria-hidden="true"></i>
@@ -99,7 +107,7 @@
                         </span>
                     </button>
 
-                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end navbar-account-menu">
+                    <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end navbar-account-menu" id="accountMenuItems" aria-labelledby="accountMenu">
                         <li>
                             <span class="dropdown-header">
                                 {{ auth()->user()->role?->name ?? 'Utente' }}

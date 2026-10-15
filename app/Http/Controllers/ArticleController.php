@@ -23,6 +23,15 @@ class ArticleController extends Controller
 
     public function index(Request $request)
     {
+        $validator = validator($request->query(), [
+            'q' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()
+                ->route('articles.index')
+                ->withErrors($validator);
+        }
         $categoryId = $request->integer('category');
         $authorId = $request->integer('author');
         $search = trim($request->string('q')->toString());
